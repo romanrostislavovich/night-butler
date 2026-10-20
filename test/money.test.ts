@@ -15,6 +15,7 @@ test('a shop is one key under every description it comes with', () => {
   assert.equal(merchantKey('NETFLIX.COM'), 'NETFLIX');
   assert.equal(merchantKey('SPOTIFY USA 8823'), 'SPOTIFY USA');
   assert.equal(merchantKey('PAYPAL *JSMITHDESIGN'), 'JSMITHDESIGN');
+  assert.equal(merchantKey('ŻABKA Z5521 WARSZAWA'), 'ŻABKA WARSZAWA');
   assert.equal(merchantKey('PLANET FITNESS #1123'), 'PLANET FITNESS');
   assert.equal(merchantKey('AMZN Mktp US*2K4L97'), merchantKey('AMZN Mktp US*9ZZ1'));
   assert.equal(merchantKey('TRADER JOE S #552'), merchantKey('TRADER JOE S #31'));
@@ -32,6 +33,24 @@ test('a statement is read by its column names, quotes and all', () => {
     ],
   );
   assert.deepEqual(parseStatement('When,What\n2026-10-01,x'), []);
+});
+
+test('a Polish export: lines before the table, "#" names, dates and amounts as banks write them', () => {
+  const mbank = [
+    'mBank S.A. Bankowość Detaliczna;',
+    'Lista operacji;',
+    '',
+    '#Data operacji;#Opis operacji;#Rachunek;#Kategoria;#Kwota;',
+    '2026-10-18;"ŻABKA Z5521 WARSZAWA";eKonto;Żywność;-12,49 PLN;',
+    '18.10.2026;"PRZELEW WYNAGRODZENIE";eKonto;Wpływy;"8 450,00 PLN";',
+  ].join('\n');
+  assert.deepEqual(
+    parseStatement(mbank).map(({ date, description, amount }) => [date, description, amount]),
+    [
+      ['2026-10-18', 'ŻABKA Z5521 WARSZAWA', -12.49],
+      ['2026-10-18', 'PRZELEW WYNAGRODZENIE', 8450],
+    ],
+  );
 });
 
 test('a charge about the same every month is a subscription; a rise is told', () => {

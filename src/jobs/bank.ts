@@ -15,9 +15,14 @@ export interface Transaction {
   key: string;
 }
 
-const DATE = /^(date|transaction date|posted|booking date|data)$/i;
-const DESCRIPTION = /^(description|details|merchant|payee|name|title|opis)$/i;
-const AMOUNT = /^(amount|value|sum|kwota)$/i;
+// The column names of English and Polish exports (mBank, PKO BP, ING, Santander, Revolut\u2026).
+const DATE =
+  /^(date|transaction date|posted|booking date|completed date|started date|data( operacji| transakcji| ksi\u0119gowania| ksiegowania)?)$/i;
+const DESCRIPTION =
+  /^(description|details|merchant|payee|name|title|opis( operacji| transakcji)?|tytu\u0142|tytul|dane kontrahenta)$/i;
+const AMOUNT = /^(amount|value|sum|kwota( operacji| transakcji)?)$/i;
+/** Some banks put a few lines about the account before the table. */
+const HEADER_SEARCH = 40;
 
 export function readStatements(folder: string): Transaction[] {
   let files: string[];
@@ -27,8 +32,17 @@ export function readStatements(folder: string): Transaction[] {
     return [];
   }
   return files
-    .flatMap((name) => parseStatement(readFileSync(join(folder, name), 'utf8')))
+    .flatMap((name) => parseStatement(decode(readFileSync(join(folder, name)))))
     .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** UTF-8 when the bytes are UTF-8; otherwise the Central European code page older exports use. */
+function decode(bytes: Buffer): string {
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder('windows-1250').decode(bytes);
+  }
 }
 
 export function parseStatement(text: string): Transaction[] {
@@ -36,31 +50,48 @@ export function parseStatement(text: string): Transaction[] {
     .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .filter((line) => line.trim());
-  if (lines.length < 2) {
-    return [];
-  }
-  const separator = [';', '\t', ','].find((one) => lines[0].includes(one)) ?? ',';
-  const header = splitLine(lines[0], separator);
-  const column = (pattern: RegExp) => header.findIndex((name) => pattern.test(name.trim()));
-  const [date, description, amount] = [column(DATE), column(DESCRIPTION), column(AMOUNT)];
-  if (date < 0 || description < 0 || amount < 0) {
-    return [];
-  }
-  return lines.slice(1).flatMap((line) => {
-    const cells = splitLine(line, separator);
-    const value = Number(cells[amount]?.replace(/\s/g, '').replace(',', '.'));
-    if (!cells[description] || !Number.isFinite(value)) {
-      return [];
+  for (let at = 0; at < Math.min(lines.length - 1, HEADER_SEARCH); at++) {
+    const separator = [';', '\t', ','].find((one) => lines[at].includes(one)) ?? ',';
+    // "#Data operacji" (mBank) and "Data operacji" are one name.
+    const header = splitLine(lines[at], separator).map((name) => name.trim().replace(/^#/, ''));
+    const column = (pattern: RegExp) => header.findIndex((name) => pattern.test(name));
+    const [date, description, amount] = [column(DATE), column(DESCRIPTION), column(AMOUNT)];
+    if (date >= 0 && description >= 0 && amount >= 0) {
+      return lines
+        .slice(at + 1)
+        .flatMap((line) => row(splitLine(line, separator), date, description, amount));
     }
-    return [
-      {
-        date: cells[date].trim().slice(0, 10),
-        description: cells[description].trim(),
-        amount: value,
-        key: merchantKey(cells[description]),
-      },
-    ];
-  });
+  }
+  return [];
+}
+
+function row(cells: string[], date: number, description: number, amount: number): Transaction[] {
+  // "-1 234,56 PLN" \u2192 -1234.56
+  const value = Number(
+    (cells[amount] ?? '')
+      .replace(/[^\d,.-]/g, '')
+      .replace(/\.(?=\d{3}\b)/g, '')
+      .replace(',', '.'),
+  );
+  const day = isoDate(cells[date] ?? '');
+  const what = (cells[description] ?? '').trim();
+  if (!what || !day || !Number.isFinite(value) || cells[amount]?.trim() === '') {
+    return [];
+  }
+  return [{ date: day, description: what, amount: value, key: merchantKey(what) }];
+}
+
+/** "2026-10-18", "18-10-2026", "18.10.2026" or "18/10/2026" \u2192 "2026-10-18". */
+function isoDate(text: string): string | null {
+  const value = text.trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (iso) {
+    return iso[0];
+  }
+  const european = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/.exec(value);
+  return european
+    ? `${european[3]}-${european[2].padStart(2, '0')}-${european[1].padStart(2, '0')}`
+    : null;
 }
 
 /** One line of CSV: quoted cells may hold the separator and doubled quotes. */
@@ -105,10 +136,13 @@ export function merchantKey(description: string): string {
       // A US city and state at the end ("SAN FRANCISCO CA").
       .replace(/\s{2,}[A-Z ]+\s[A-Z]{2}$/, '')
       .replace(/\b(INC|LLC|LTD|CO|COM|WWW|HTTPS?)\b/g, ' ')
-      .replace(/[^A-Z&' ]/g, ' ')
+      // Letters of any language: "ŻABKA" stays "ŻABKA".
+      .replace(/[^\p{L}&' ]/gu, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .split(' ')
+      // A lone letter is what is left of a store number ("Z5521").
+      .filter((word) => word.length > 1)
       .slice(0, 3)
       .join(' ') || description.trim().toUpperCase()
   );

@@ -62,7 +62,7 @@ On Windows this adds a Task Scheduler task; on macOS and Linux it prints the cro
 ```
 night-butler.json      optional: { "model": { "name": "qwen2.5:7b" }, "currency": "EUR", ... }
 inbox/
-  bank/*.csv           a Date, a Description and an Amount column (names in English or Polish)
+  bank/*.csv           a date, a description and an amount column (English or Polish names: mBank, PKO, ING, Revolut…)
   notes/*.md           anything; a date at the start of the name is the day it was written
   tasks.md             - [ ] Renew the passport #home (2026-06-02)
 butler/                written by the butler: transactions.csv, notes/, tasks.md, briefing.md
