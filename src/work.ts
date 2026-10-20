@@ -75,7 +75,12 @@ export function merchantWork(
 ): Work<MerchantReading> {
   const lines = samples
     .slice(0, 3)
-    .map((one) => `${one.date}  ${one.description}  ${one.amount.toFixed(2)} ${config.currency}`);
+    .map(
+      (one) =>
+        `${one.date}  ${one.description}  ${one.amount.toFixed(2)} ${config.currency}` +
+        (one.hint ? `  [the bank's category: ${one.hint}]` : ''),
+    );
+  const bankHints = [...new Set(samples.flatMap((one) => (one.hint ? [one.hint] : [])))];
   const moneyIn = samples.every((one) => one.amount > 0);
   const categories = config.categories.filter(
     (category) => MONEY_IN.has(category) === moneyIn || category === 'Other',
@@ -87,7 +92,7 @@ export function merchantWork(
     )
     .join('\n');
   return {
-    id: idOf('merchant', key, categories, config.model.name),
+    id: idOf('merchant', key, categories, bankHints, config.model.name),
     label: key,
     run: () =>
       ask<MerchantReading>(
@@ -97,7 +102,9 @@ export function merchantWork(
           'Answer with: the merchant name as a person would write it; what it sells or what ' +
           'the payment is for, in a few words; whether you know this business or the line says ' +
           'plainly what it is (false for a name you cannot place, like a person or a small shop ' +
-          'with a vague name — then it is better to ask than to guess); and its category:\n' +
+          'with a vague name — then it is better to ask than to guess); and its category. A ' +
+          "line may carry the bank's own category in [brackets], in any language: when it says " +
+          'plainly what the payment is, trust it and count the merchant as known. Categories:\n' +
           hints,
         lines.join('\n'),
         {

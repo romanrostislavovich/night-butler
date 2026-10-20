@@ -45,10 +45,15 @@ test('a Polish export: lines before the table, "#" names, dates and amounts as b
     '18.10.2026;"PRZELEW WYNAGRODZENIE";eKonto;Wpływy;"8 450,00 PLN";',
   ].join('\n');
   assert.deepEqual(
-    parseStatement(mbank).map(({ date, description, amount }) => [date, description, amount]),
+    parseStatement(mbank).map(({ date, description, amount, hint }) => [
+      date,
+      description,
+      amount,
+      hint,
+    ]),
     [
-      ['2026-10-18', 'ŻABKA Z5521 WARSZAWA', -12.49],
-      ['2026-10-18', 'PRZELEW WYNAGRODZENIE', 8450],
+      ['2026-10-18', 'ŻABKA Z5521 WARSZAWA', -12.49, 'Żywność'],
+      ['2026-10-18', 'PRZELEW WYNAGRODZENIE', 8450, 'Wpływy'],
     ],
   );
 });

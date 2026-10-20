@@ -13,14 +13,17 @@ export interface Transaction {
   amount: number;
   /** The same shop under every description it comes with (see merchantKey). */
   key: string;
+  /** The category the bank (or another app) gave it, when the export has one: a hint. */
+  hint?: string;
 }
 
-// The column names of English and Polish exports (mBank, PKO BP, ING, Santander, Revolut\u2026).
+// The column names of English and Polish exports (mBank, PKO BP, ING, Santander, Revolut…).
 const DATE =
-  /^(date|transaction date|posted|booking date|completed date|started date|data( operacji| transakcji| ksi\u0119gowania| ksiegowania)?)$/i;
+  /^(date|transaction date|posted|booking date|completed date|started date|data( operacji| transakcji| księgowania| ksiegowania)?)$/i;
 const DESCRIPTION =
-  /^(description|details|merchant|payee|name|title|opis( operacji| transakcji)?|tytu\u0142|tytul|dane kontrahenta)$/i;
+  /^(description|details|merchant|payee|name|title|opis( operacji| transakcji)?|tytuł|tytul|dane kontrahenta)$/i;
 const AMOUNT = /^(amount|value|sum|kwota( operacji| transakcji)?)$/i;
+const CATEGORY = /^(category|kategoria)$/i;
 /** Some banks put a few lines about the account before the table. */
 const HEADER_SEARCH = 40;
 
@@ -59,14 +62,22 @@ export function parseStatement(text: string): Transaction[] {
     if (date >= 0 && description >= 0 && amount >= 0) {
       return lines
         .slice(at + 1)
-        .flatMap((line) => row(splitLine(line, separator), date, description, amount));
+        .flatMap((line) =>
+          row(splitLine(line, separator), date, description, amount, column(CATEGORY)),
+        );
     }
   }
   return [];
 }
 
-function row(cells: string[], date: number, description: number, amount: number): Transaction[] {
-  // "-1 234,56 PLN" \u2192 -1234.56
+function row(
+  cells: string[],
+  date: number,
+  description: number,
+  amount: number,
+  category: number,
+): Transaction[] {
+  // "-1 234,56 PLN" → -1234.56
   const value = Number(
     (cells[amount] ?? '')
       .replace(/[^\d,.-]/g, '')
@@ -78,10 +89,19 @@ function row(cells: string[], date: number, description: number, amount: number)
   if (!what || !day || !Number.isFinite(value) || cells[amount]?.trim() === '') {
     return [];
   }
-  return [{ date: day, description: what, amount: value, key: merchantKey(what) }];
+  const hint = category >= 0 ? cells[category]?.trim() : '';
+  return [
+    {
+      date: day,
+      description: what,
+      amount: value,
+      key: merchantKey(what),
+      ...(hint ? { hint } : {}),
+    },
+  ];
 }
 
-/** "2026-10-18", "18-10-2026", "18.10.2026" or "18/10/2026" \u2192 "2026-10-18". */
+/** "2026-10-18", "18-10-2026", "18.10.2026" or "18/10/2026" → "2026-10-18". */
 function isoDate(text: string): string | null {
   const value = text.trim();
   const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
