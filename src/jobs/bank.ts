@@ -33,7 +33,7 @@ export function readStatements(folder: string): Transaction[] {
 
 export function parseStatement(text: string): Transaction[] {
   const lines = text
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .filter((line) => line.trim());
   if (lines.length < 2) {
