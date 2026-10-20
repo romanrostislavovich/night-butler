@@ -1,0 +1,16 @@
+# To do
+
+- [ ] Renew the passport #home (2026-06-02)
+- [ ] Book a passport renewal appointment (2026-08-20)
+- [ ] Cancel the gym membership #money (2026-07-15)
+- [ ] cancel planet fitness (2026-09-28)
+- [ ] Call the bank about the card #money (2026-10-10)
+- [ ] Call the bank about the car loan #money (2026-10-12)
+- [ ] Prepare the slides for the Q4 review (2026-10-11)
+- [ ] Fix the leaking kitchen tap (2026-08-03)
+- [ ] Book a flu shot (2026-10-06)
+- [ ] Write the performance self-review #work (2026-10-01)
+- [ ] Update the team wiki #work (2026-07-21)
+- [ ] Order new running shoes #health (2026-10-02)
+- [x] Pay the parking ticket #money (2026-09-01)
+- [x] Send the rent receipt to the landlord #home (2026-10-02)

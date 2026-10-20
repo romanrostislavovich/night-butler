@@ -1,0 +1,24 @@
+{
+  "name": "night-butler",
+  "version": "0.1.0",
+  "description": "A slow local AI that works the night shift: it sorts your bank statement, notes and to-do list while you sleep, and leaves a briefing in the morning.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "night-butler": "src/cli.ts"
+  },
+  "engines": {
+    "node": ">=23.6"
+  },
+  "scripts": {
+    "shift": "node src/cli.ts shift",
+    "review": "node src/cli.ts review",
+    "demo": "node src/cli.ts demo",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}
