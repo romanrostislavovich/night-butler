@@ -230,7 +230,7 @@ export function morning(config: Config, state: State, inbox: Inbox, today: strin
     overnight: [
       `Sorted ${sorted.filter((one) => one.by !== 'ask' && one.by !== 'pending').length} of ` +
         `${sorted.length} bank transactions into categories.`,
-      `Tidied ${notes.length} notes: a title and tags for each.`,
+      notes.length ? `Tidied ${notes.length} notes: a title and tags for each.` : '',
       newTasks.length
         ? `Found ${newTasks.length} to-dos hidden in the notes and added them to the list.`
         : '',
