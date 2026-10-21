@@ -68,6 +68,12 @@ test('a charge about the same every month is a subscription; a rise is told', ()
     tx('2026-07-03', 'SAFEWAY 1', -30),
     tx('2026-08-03', 'SAFEWAY 1', -90),
     tx('2026-09-03', 'SAFEWAY 1', -55),
+    // A shop of every week whose last visit of each month happens to cost the same: not one.
+    ...['07', '08', '09', '10'].flatMap((month) => [
+      tx(`2026-${month}-05`, 'BIEDRONKA 1', -12),
+      tx(`2026-${month}-12`, 'BIEDRONKA 1', -64),
+      tx(`2026-${month}-26`, 'BIEDRONKA 1', -40),
+    ]),
   ]);
   assert.deepEqual(
     found.map(({ key, amount, roseFrom }) => [key, amount, roseFrom]),
@@ -82,6 +88,13 @@ test('the same amount from the same shop within days is charged twice', () => {
     tx('2026-10-12', 'ADOBE *CREATIVE CLD', -59.99),
   ]);
   assert.deepEqual(found, [{ key: 'ADOBE', amount: 59.99, dates: ['2026-09-12', '2026-09-14'] }]);
+  // Rides of one price, several a month: not charged twice.
+  const rides = ['07', '08', '09'].flatMap((month) =>
+    [3, 4, 9, 20].map((day) =>
+      tx(`2026-${month}-0${day}`.replace(/-0(\d\d)$/, '-$1'), 'BOLT', -14),
+    ),
+  );
+  assert.deepEqual(doubleCharges(rides), []);
 });
 
 test('a bill far above its own steady usual is unusual; a jumpy shop is not', () => {

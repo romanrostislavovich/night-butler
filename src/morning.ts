@@ -194,11 +194,12 @@ export function morning(config: Config, state: State, inbox: Inbox, today: strin
       .map((one) => ({ merchant: nameOf(one.key), amount: one.amount, roseFrom: one.roseFrom }));
   const subs = recurring(false);
   const bills = recurring(true).map((one) => ({ ...one, roseFrom: null }));
-  const doubles = doubleCharges(inbox.transactions).map((one) => ({
-    merchant: nameOf(one.key),
-    amount: one.amount,
-    dates: one.dates,
-  }));
+  // Charged twice is news only for what is billed: two cash withdrawals in a day or two
+  // transfers to a friend are just a day.
+  const billed = new Set(['Subscriptions', ...BILLS]);
+  const doubles = doubleCharges(inbox.transactions)
+    .filter((one) => billed.has(categoryOf(one.key) ?? ''))
+    .map((one) => ({ merchant: nameOf(one.key), amount: one.amount, dates: one.dates }));
   const odd = unusual(inbox.transactions).map((one) => ({
     merchant: nameOf(one.key),
     amount: one.amount,

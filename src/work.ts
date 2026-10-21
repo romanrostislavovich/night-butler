@@ -101,8 +101,9 @@ export function merchantWork(
           `they appear on a bank statement (${moneyIn ? 'money received' : 'money spent'}). ` +
           'Answer with: the merchant name as a person would write it; what it sells or what ' +
           'the payment is for, in a few words; whether you know this business or the line says ' +
-          'plainly what it is (false for a name you cannot place, like a person or a small shop ' +
-          'with a vague name — then it is better to ask than to guess); and its category. A ' +
+          'plainly what it is (false for a business name you cannot place, like a small shop ' +
+          'with a vague name — then it is better to ask than to guess; but a payment to or from ' +
+          'a person, a first and a last name, is plainly a transfer: known); and its category. A ' +
           "line may carry the bank's own category in [brackets], in any language: when it says " +
           'plainly what the payment is, trust it and count the merchant as known. Categories:\n' +
           hints,

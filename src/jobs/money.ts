@@ -49,7 +49,8 @@ export function subscriptions(transactions: Transaction[]): Subscription[] {
       months.set(charge.date.slice(0, 7), charge);
     }
     const monthly = [...months.values()];
-    if (monthly.length < MIN_MONTHS) {
+    // About once a month: a shop visited every week is not a subscription, however steady.
+    if (monthly.length < MIN_MONTHS || !aboutMonthly(charges, months.size)) {
       return [];
     }
     const amounts = monthly.map((one) => -one.amount);
@@ -72,9 +73,18 @@ export function subscriptions(transactions: Transaction[]): Subscription[] {
   });
 }
 
+/**
+ * The same amount from the same merchant within days, where the merchant charges about once a
+ * month: two rides of one price or two transfers to a friend are not a mistake of the bank.
+ */
 export function doubleCharges(transactions: Transaction[]): DoubleCharge[] {
   const found: DoubleCharge[] = [];
   for (const [key, charges] of byKey(transactions.filter((one) => one.amount < 0))) {
+    const months = new Set(charges.map((one) => one.date.slice(0, 7))).size;
+    // The extra charge itself is the one too many.
+    if (months < 2 || !aboutMonthly(charges.slice(1), months)) {
+      continue;
+    }
     for (let i = 1; i < charges.length; i++) {
       const [a, b] = [charges[i - 1], charges[i]];
       if (a.amount === b.amount && daysBetween(a.date, b.date) <= DOUBLE_DAYS) {
@@ -106,6 +116,11 @@ export function unusual(transactions: Transaction[]): Unusual[] {
     const steady = spread <= usual * SAME_PRICE;
     return far && steady ? [{ key, date: last.date, amount, usual }] : [];
   });
+}
+
+/** At most one charge a month, give or take one. */
+function aboutMonthly(charges: Transaction[], months: number): boolean {
+  return charges.length <= months + 1;
 }
 
 function byKey(transactions: Transaction[]): Map<string, Transaction[]> {
