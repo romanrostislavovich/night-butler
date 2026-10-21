@@ -121,9 +121,13 @@ export function morning(config: Config, state: State, inbox: Inbox, today: strin
   };
 
   // Money.
+  // The work of today: a question left by an older way of asking is not shown.
+  const current = new Set<string>();
   const readings = new Map<string, MerchantReading | null>();
   for (const [key, lines] of merchants(inbox.transactions)) {
-    readings.set(key, answer<MerchantReading>(merchantWork(config, key, lines).id));
+    const { id } = merchantWork(config, key, lines);
+    current.add(id);
+    readings.set(key, answer<MerchantReading>(id));
   }
   const sorted: Sorted[] = inbox.transactions.map((one) => {
     const reading = readings.get(one.key) ?? null;
@@ -159,7 +163,9 @@ export function morning(config: Config, state: State, inbox: Inbox, today: strin
   const merged: [string, string][] = [];
   for (const [i, j] of maybeTwice(tasks)) {
     const key = pairKey(tasks[i], tasks[j]);
-    const verdict = answer<SameTask>(sameTaskWork(config, tasks[i], tasks[j]).id);
+    const pair = sameTaskWork(config, tasks[i], tasks[j]);
+    current.add(pair.id);
+    const verdict = answer<SameTask>(pair.id);
     const same =
       state.memory.same.includes(key) ||
       (!state.memory.different.includes(key) && !!verdict?.same && verdict.sure);
@@ -207,7 +213,7 @@ export function morning(config: Config, state: State, inbox: Inbox, today: strin
     date: one.date,
   }));
   const stale = forgotten(finalTasks, today, config.staleDays);
-  const questions = state.open();
+  const questions = state.open().filter((question) => current.has(question.id));
   const spending = [...totals]
     .map(([category, amount]) => ({ category, amount: round(amount) }))
     .sort((a, b) => b.amount - a.amount);

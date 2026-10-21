@@ -91,34 +91,32 @@ export function merchantWork(
         `- ${category}${CATEGORY_HINTS[category] ? `: ${CATEGORY_HINTS[category]}` : ''}`,
     )
     .join('\n');
+  const instruction =
+    'You sort the bank transactions of one person. You get the lines of one merchant as ' +
+    `they appear on a bank statement (${moneyIn ? 'money received' : 'money spent'}). ` +
+    'Answer with: the merchant name as a person would write it; what it sells or what ' +
+    'the payment is for, in a few words; whether you know this business or the line says ' +
+    'plainly what it is (false for a business name you cannot place, like a small shop ' +
+    'with a vague name — then it is better to ask than to guess; but a payment to or from ' +
+    'a person, a first and a last name, is plainly a transfer: known); and its category. A ' +
+    "line may carry the bank's own category in [brackets], in any language: when it says " +
+    'plainly what the payment is, trust it and count the merchant as known. Categories:\n' +
+    hints;
   return {
-    id: idOf('merchant', key, categories, bankHints, config.model.name),
+    // The instruction is part of the id: a better question is asked again of every merchant.
+    id: idOf('merchant', key, instruction, bankHints, config.model.name),
     label: key,
     run: () =>
-      ask<MerchantReading>(
-        config.model,
-        'You sort the bank transactions of one person. You get the lines of one merchant as ' +
-          `they appear on a bank statement (${moneyIn ? 'money received' : 'money spent'}). ` +
-          'Answer with: the merchant name as a person would write it; what it sells or what ' +
-          'the payment is for, in a few words; whether you know this business or the line says ' +
-          'plainly what it is (false for a business name you cannot place, like a small shop ' +
-          'with a vague name — then it is better to ask than to guess; but a payment to or from ' +
-          'a person, a first and a last name, is plainly a transfer: known); and its category. A ' +
-          "line may carry the bank's own category in [brackets], in any language: when it says " +
-          'plainly what the payment is, trust it and count the merchant as known. Categories:\n' +
-          hints,
-        lines.join('\n'),
-        {
-          type: 'object',
-          properties: {
-            merchant: { type: 'string' },
-            sells: { type: 'string' },
-            known: { type: 'boolean' },
-            category: { type: 'string', enum: categories },
-          },
-          required: ['merchant', 'sells', 'known', 'category'],
+      ask<MerchantReading>(config.model, instruction, lines.join('\n'), {
+        type: 'object',
+        properties: {
+          merchant: { type: 'string' },
+          sells: { type: 'string' },
+          known: { type: 'boolean' },
+          category: { type: 'string', enum: categories },
         },
-      ),
+        required: ['merchant', 'sells', 'known', 'category'],
+      }),
   };
 }
 
